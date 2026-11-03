@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>橋序創研 BridgeSegLab | 品牌設計工作室</title>
+    <!-- 引入 Google Fonts：使用思源宋體增添溫潤人文感 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;700&display=swap" rel="stylesheet">
+    <!-- 引入 GSAP 核心函式庫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <!-- 引入 GSAP Flip 外掛 (作品分類平順重排) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/Flip.min.js"></script>
+    <!-- 引入 GSAP ScrollTrigger 外掛 (捲動觸發與固定畫面) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <style>
+        /* 基礎全域設定 */
+        :root {
+            --bg-color: #FAF7F2;     /* 溫潤的暖米白色 */
+            --text-main: #3D3329;    /* 沉穩的深褐灰 */
+            --text-muted: #7A6F64;   /* 柔和的次要文字色 */
+            --accent-color: #A67C52; /* 暖土色點綴 */
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Noto Serif TC', serif;
+            overflow-x: hidden;
+            /* 讓網頁內容能正常向下延伸捲動 */
+        }
+
+        /* 英雄區塊容器 */
+        .hero-section {
+            position: relative;
+            width: 90%;
+            max-width: 1200px;
+            height: 100vh;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        /* 主視覺背景 (使用色塊或圖片容器) */
+        .hero-visual {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* 加入真實背景圖，並疊加帶透明度的暖色漸層以確保文字清晰 */
+            background: linear-gradient(135deg, rgba(243, 235, 225, 0.85) 0%, rgba(232, 220, 203, 0.95) 100%), url('https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=2000&q=80') center/cover;
+            border-radius: 16px;
+            z-index: 0;
+            /* 預設隱藏，交由 GSAP 控制進場 */
+            opacity: 0; 
+        }
+
+        /* 內容容器 (確保在主視覺之上) */
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            padding: 40px;
+        }
+
+        /* 主標題 */
+        .hero-title {
+            font-size: clamp(2.5rem, 5vw, 4.5rem);
+            font-weight: 700;
+            margin: 0 0 16px 0;
+            letter-spacing: 0.05em;
+            line-height: 1.2;
+            color: var(--text-main);
+            opacity: 0;
+        }
+
+        .hero-title span {
+            display: block;
+            font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+            font-weight: 300;
+            color: var(--accent-color);
+            margin-top: 12px;
+            letter-spacing: 0.15em;
+        }
+
+        /* 說明文字 */
+        .hero-desc {
+            font-size: clamp(1rem, 1.5vw, 1.2rem);
+            font-weight: 400;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto 40px auto;
+            line-height: 1.8;
+            opacity: 0;
+        }
+
+        /* 聯絡/行動按鈕 */
+        .hero-btn {
+            display: inline-block;
+            background-color: var(--text-main);
+            color: var(--bg-color);
+            text-decoration: none;
+            padding: 16px 40px;
+            font-size: 1.1rem;
+            letter-spacing: 0.1em;
+            border-radius: 40px;
+            border: 1px solid var(--text-main);
+            transition: all 0.4s ease;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .hero-btn:hover {
+            background-color: transparent;
+            color: var(--text-main);
+        }
+
+        /* ========== 首頁作品跑馬燈 ========== */
+        .hero-marquee {
+            position: absolute;
+            bottom: 40px; /* 放置在首頁底部 */
+            left: 0;
+            width: 100%;
+            overflow: hidden;
+            display: flex;
+            z-index: 1;
+            /* 兩側加上漸層遮罩，讓圖片平滑淡入淡出 */
+            -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+            mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+            opacity: 0; /* 預設隱藏，由 GSAP 進場 */
+        }
+
+        .marquee-track {
+            display: flex;
+            gap: 20px;
+            width: max-content;
+            /* 調整秒數可改變滾動速度 */
+            animation: scrollMarquee 40s linear infinite; 
+        }
+
+        .marquee-track:hover {
+            animation-play-state: paused; /* 滑鼠移入時暫停滾動 */
+        }
+
+        .marquee-item {
+            width: 240px;
+            height: 140px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(61, 51, 41, 0.1);
+            cursor: pointer;
+        }
+
+        .marquee-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: grayscale(80%) opacity(0.8); /* 預設為沉穩的低彩度 */
+            transition: all 0.4s ease;
+        }
+
+        .marquee-item:hover img {
+            filter: grayscale(0%) opacity(1); /* 滑鼠懸停時恢復全彩 */
+            transform: scale(1.05);
+        }
+
+        @keyframes scrollMarquee {
+            0% { transform: translateX(0); }
+            /* 移動負 50% 達成無縫連接 (HTML 需複製一組相同的內容) */
+            100% { transform: translateX(-50%); } 
+        }
+
+        /* ========== 作品分類與圖庫區塊 ========== */
+        .projects-section {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 0 100px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 篩選按鈕列 */
+        .filter-group {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 60px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .filter-btn {
+            background-color: transparent;
+            color: var(--text-muted);
+            border: 1px solid rgba(122, 111, 100, 0.3);
+            border-radius: 40px;
+            padding: 10px 24px;
+            font-size: 1rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            /* 觸控熱區確保 > 44px，提升行動裝置操作體驗 */
+            min-height: 44px; 
+            min-width: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            border-color: var(--accent-color);
+        }
+
+        /* 作品網格 */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 32px;
+            width: 100%;
+        }
+
+        /* 專案卡片 */
+        .project-card {
+            position: relative;
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            aspect-ratio: 4 / 3;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(61, 51, 41, 0.05);
+            /* 防止 Flip 絕對定位過渡時計算偏移 */
+            transform-origin: center top; 
+        }
+
+        .card-img-wrapper {
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* 用於隱藏放大時超出的圖片邊界 */
+        }
+
+        .project-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            /* 縮放由 JS GSAP 控制 */
+        }
+
+        /* 懸停遮罩層 */
+        .project-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(61, 51, 41, 0.85); /* 沉穩的半透明深褐色 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 24px;
+            /* 動態透明度交由 GSAP 控制 */
+        }
+
+        .overlay-content {
+            color: var(--bg-color);
+        }
+
+        .project-category {
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            color: #E8DCCB;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .project-name {
+            font-size: 1.5rem;
+            margin: 0 0 16px 0;
+            font-weight: 400;
+        }
+
+        .view-prompt {
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--accent-color);
+            padding-bottom: 4px;
+        }
+
+        /* ========== 設計團隊區塊 ========== */
+        .team-section {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 0 100px 0;
+            text-align: center;
+        }
+
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 40px;
+            margin-top: 60px;
+        }
+
+        .team-card {
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .team-img-wrap {
+            width: 100%;
+            aspect-ratio: 3 / 4;
+            overflow: hidden;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(61, 51, 41, 0.05);
+        }
+
+        .team-img-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: grayscale(40%) sepia(10%); /* 帶有微暖色調的復古低彩度 */
+            transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .team-card:hover .team-img-wrap img {
+            filter: grayscale(0%) sepia(0%);
+            transform: scale(1.05);
+        }
+
+        .team-name {
+            font-size: 1.5rem;
+            margin: 0 0 6px 0;
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        .team-role {
+            font-size: 1rem;
+            color: var(--accent-color);
+            margin: 0;
+            letter-spacing: 0.05em;
+        }
+
+        /* ========== 個案研究區塊 ========== */
+        .case-study-section {
+            width: 100%;
+            background-color: #F5EFEB; /* 稍微深一點的底色，區分閱讀區塊 */
+            padding: 100px 0;
+            overflow: hidden;
+        }
+
+        .cs-inner {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            color: var(--accent-color);
+            margin-bottom: 60px;
+            letter-spacing: 0.1em;
+            font-weight: 300;
+        }
+
+        /* 背景與成果的通用佈局 */
+        .cs-block {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            margin-bottom: 100px;
+        }
+        
+        @media (min-width: 768px) {
+            .cs-block {
+                flex-direction: row;
+                align-items: center;
+            }
+            /* 讓成果區塊左右反轉，增加排版層次 */
+            .cs-block:nth-child(even) {
+                flex-direction: row-reverse;
+            }
+        }
+
+        .cs-text, .cs-image {
+            flex: 1;
+        }
+
+        .cs-text h3 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: var(--text-main);
+        }
+
+        .cs-text p {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: var(--text-muted);
+        }
+
+        .cs-img-element {
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 15px 40px rgba(61, 51, 41, 0.1);
+        }
+
+        /* 設計策略 Pin 固定區塊 */
+        .cs-strategy-container {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 100px;
+            gap: 40px;
+        }
+
+        @media (min-width: 768px) {
+            .cs-strategy-container {
+                flex-direction: row;
+                gap: 60px;
+            }
+        }
+
+        .cs-strategy-left {
+            flex: 1;
+            position: relative;
+        }
+
+        .pinned-media {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 15px 40px rgba(61, 51, 41, 0.1);
+            background-color: var(--bg-color);
+        }
+
+        /* 在行動版時讓圖片固定黏在頂部，方便閱讀時切換 */
+        @media (max-width: 767px) {
+            .cs-strategy-left {
+                position: sticky;
+                top: 80px;
+                z-index: 10;
+            }
+        }
+
+        .pinned-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+        }
+        
+        .pinned-img.active {
+            opacity: 1;
+        }
+
+        .cs-strategy-right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px 0;
+        }
+
+        .strategy-step {
+            min-height: 50vh; /* 確保有足夠的捲動距離觸發切換 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .strategy-step h4 {
+            font-size: 1.5rem;
+            color: var(--accent-color);
+            margin-bottom: 16px;
+        }
+
+        .strategy-step p {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: var(--text-muted);
+        }
+
+        /* ========== 聯絡表單區塊 ========== */
+        .contact-section {
+            width: 90%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 120px 0;
+            text-align: center;
+        }
+
+        .contact-intro {
+            margin-bottom: 60px;
+        }
+
+        .contact-intro h2 {
+            font-size: 2.5rem;
+            color: var(--accent-color);
+            margin-bottom: 16px;
+            letter-spacing: 0.1em;
+            font-weight: 300;
+        }
+
+        .contact-intro p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        .contact-form {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            text-align: left;
+        }
+
+        .form-group {
+            position: relative;
+        }
+
+        .form-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid rgba(61, 51, 41, 0.2);
+            padding: 12px 0;
+            font-size: 1.1rem;
+            color: var(--text-main);
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-bottom-color: var(--accent-color);
+        }
+
+        .form-input::placeholder {
+            color: rgba(122, 111, 100, 0.5);
+        }
+
+        textarea.form-input {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        /* 磁吸按鈕容器與按鈕本身 */
+        .magnetic-wrap {
+            align-self: center;
+            margin-top: 20px;
+            display: inline-block;
+            padding: 20px; /* 擴大磁吸偵測範圍 */
+            cursor: pointer;
+        }
+
+        .magnetic-btn {
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            border: none;
+            padding: 16px 48px;
+            font-size: 1.1rem;
+            letter-spacing: 0.1em;
+            border-radius: 40px;
+            cursor: pointer;
+            font-family: inherit;
+            pointer-events: none; /* 讓事件穿透到 wrap 上計算 */
+        }
+
+        /* 表單送出成功訊息 */
+        .success-message {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            background-color: #F5EFEB;
+            border-radius: 12px;
+            color: var(--text-main);
+        }
+
+        .success-message h3 {
+            font-size: 1.8rem;
+            margin-bottom: 12px;
+            color: var(--accent-color);
+        }
+
+        /* 頁尾 */
+        footer {
+            text-align: center;
+            padding: 40px 0;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            border-top: 1px solid rgba(61, 51, 41, 0.1);
+        }
+
+        /* ScrollTrigger 動畫準備 class */
+        .gsap-reveal {
+            opacity: 0;
+            visibility: hidden;
+        }
+    </style>
+</head>
+<body>
+
+    <main class="hero-section">
+        <!-- 墊在後方的主視覺區塊 -->
+        <div class="hero-visual"></div>
+        
+        <div class="hero-content">
+            <!-- 品牌標題 -->
+            <h1 class="hero-title">
+                橋序創研
+                <span>BridgeSegLab</span>
+            </h1>
+            <!-- 品牌主張說明 -->
+            <p class="hero-desc">
+                探索品牌核心，建構跨界設計的空間與視覺語言。我們以溫潤的人文視角，為每個專案注入沉穩而清晰的敘事脈絡。
+            </p>
+            <!-- 瀏覽按鈕 -->
+            <a href="#projects" class="hero-btn">瀏覽作品</a>
+        </div>
+
+        <!-- 新增：首頁底部的作品滾動展示 -->
+        <div class="hero-marquee">
+            <div class="marquee-track">
+                <!-- 第一組圖片 -->
+                <div class="marquee-item"><img src="https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=400&q=80" alt="案例展示"></div>
+                <div class="marquee-item"><img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=400&q=80" alt="案例展示"></div>
+                <div class="marquee-item"><img src="https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=400&q=80" alt="案例展示"></div>
+                <div class="marquee-item"><img src="https://images.unsplash.com/photo-1618761714954-0b8cd0026356?auto=format&fit=crop&w=400&q=80" alt="案例展示"></div>
+                <div class="marquee-item"><img src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=400&q=80" alt="案例展示"></div>
+                
+                <!-- 第二組圖片 (與第一組完全相同，用於創造無縫輪播效果) -->
+                <div class="marquee-item"><img src="https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=400&q=80" alt="案例展示"></div>
+                <div class="marquee-item"><img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=400&q=80" alt="案例展示"></div>
+                <div class="marquee-item"><img src="https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=400&q=80" alt="案例展示"></div>
+                <div class="marquee-item"><img src="https://images.unsplash.com/photo-1618761714954-0b8cd0026356?auto=format&fit=crop&w=400&q=80" alt="案例展示"></div>
+                <div class="marquee-item"><img src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=400&q=80" alt="案例展示"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 作品分類與圖庫區塊 -->
+    <section id="projects" class="projects-section">
+        <!-- 篩選列 -->
+        <div class="filter-group">
+            <button class="filter-btn active" data-filter="all">全部分類</button>
+            <button class="filter-btn" data-filter="brand">品牌識別</button>
+            <button class="filter-btn" data-filter="digital">數位體驗</button>
+            <button class="filter-btn" data-filter="spatial">空間設計</button>
+            <button class="filter-btn" data-filter="exhibition">策展視覺</button>
+        </div>
+
+        <!-- 網格與卡片 -->
+        <div class="projects-grid">
+            <!-- 品牌專案 1 -->
+            <a href="case-study.html" class="project-card" data-category="brand" style="text-decoration: none; color: inherit; display: block;">
+                <div class="card-img-wrapper">
+                    <!-- 引入真實 Unsplash 攝影圖片替換佔位圖 -->
+                    <img src="https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=800&q=80" alt="煦光咖啡品牌識別" class="project-img">
+                </div>
+                <div class="project-overlay">
+                    <div class="overlay-content">
+                        <span class="project-category">BRAND IDENTITY</span>
+                        <h3 class="project-name">煦光咖啡品牌識別</h3>
+                        <div class="view-prompt">查看案例 <span>→</span></div>
+                    </div>
+                </div>
+            </a>
+            
+            <!-- 數位體驗 1 -->
+            <a href="case-study.html" class="project-card" data-category="digital" style="text-decoration: none; color: inherit; display: block;">
+                <div class="card-img-wrapper">
+                    <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80" alt="築光建築官網設計" class="project-img">
+                </div>
+                <div class="project-overlay">
+                    <div class="overlay-content">
+                        <span class="project-category">DIGITAL EXPERIENCE</span>
+                        <h3 class="project-name">築光建築官網設計</h3>
+                        <div class="view-prompt">查看案例 <span>→</span></div>
+                    </div>
+                </div>
+            </a>
+
+            <!-- 品牌專案 2 -->
+            <a href="case-study.html" class="project-card" data-category="brand" style="text-decoration: none; color: inherit; display: block;">
+                <div class="card-img-wrapper">
+                    <img src="https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80" alt="無境藝廊品牌策略" class="project-img">
+                </div>
+                <div class="project-overlay">
+                    <div class="overlay-content">
+                        <span class="project-category">BRAND IDENTITY</span>
+                        <h3 class="project-name">無境藝廊品牌策略</h3>
+                        <div class="view-prompt">查看案例 <span>→</span></div>
+                    </div>
+                </div>
+            </a>
+
+            <!-- 數位體驗 2 -->
+            <a href="case-study.html" class="project-card" data-category="digital" style="text-decoration: none; color: inherit; display: block;">
+                <div class="card-img-wrapper">
+                    <img src="https://images.unsplash.com/photo-1618761714954-0b8cd0026356?auto=format&fit=crop&w=800&q=80" alt="雲端智能導覽 APP" class="project-img">
+                </div>
+                <div class="project-overlay">
+                    <div class="overlay-content">
+                        <span class="project-category">DIGITAL EXPERIENCE</span>
+                        <h3 class="project-name">雲端智能導覽 APP</h3>
+                        <div class="view-prompt">查看案例 <span>→</span></div>
+                    </div>
+                </div>
+            </a>
+
+            <!-- 新增：空間設計 1 -->
+            <a href="case-study.html" class="project-card" data-category="spatial" style="text-decoration: none; color: inherit; display: block;">
+                <div class="card-img-wrapper">
+                    <img src="https://images.unsplash.com/photo-1554995207-c18c203602cb?auto=format&fit=crop&w=800&q=80" alt="墨白茶室空間規劃" class="project-img">
+                </div>
+                <div class="project-overlay">
+                    <div class="overlay-content">
+                        <span class="project-category">SPATIAL DESIGN</span>
+                        <h3 class="project-name">墨白茶室空間規劃</h3>
+                        <div class="view-prompt">查看案例 <span>→</span></div>
+                    </div>
+                </div>
+            </a>
+            
+            <!-- 新增：策展視覺 1 -->
+            <a href="case-study.html" class="project-card" data-category="exhibition" style="text-decoration: none; color: inherit; display: block;">
+                <div class="card-img-wrapper">
+                    <img src="https://images.unsplash.com/photo-1544928147-79a2dbc1f389?auto=format&fit=crop&w=800&q=80" alt="島嶼記憶特展視覺" class="project-img">
+                </div>
+                <div class="project-overlay">
+                    <div class="overlay-content">
+                        <span class="project-category">EXHIBITION VISUAL</span>
+                        <h3 class="project-name">島嶼記憶特展視覺</h3>
+                        <div class="view-prompt">查看案例 <span>→</span></div>
+                    </div>
+                </div>
+            </a>
+
+            <!-- 新增：空間設計 2 -->
+            <a href="case-study.html" class="project-card" data-category="spatial" style="text-decoration: none; color: inherit; display: block;">
+                <div class="card-img-wrapper">
+                    <img src="https://images.unsplash.com/photo-1600607686527-6fb886090705?auto=format&fit=crop&w=800&q=80" alt="隱山居精品民宿" class="project-img">
+                </div>
+                <div class="project-overlay">
+                    <div class="overlay-content">
+                        <span class="project-category">SPATIAL DESIGN</span>
+                        <h3 class="project-name">隱山居精品民宿</h3>
+                        <div class="view-prompt">查看案例 <span>→</span></div>
+                    </div>
+                </div>
+            </a>
+
+            <!-- 新增：品牌專案 3 -->
+            <a href="case-study.html" class="project-card" data-category="brand" style="text-decoration: none; color: inherit; display: block;">
+                <div class="card-img-wrapper">
+                    <img src="https://images.unsplash.com/photo-1600132806370-bf17e65e942f?auto=format&fit=crop&w=800&q=80" alt="嶼石生活選物" class="project-img">
+                </div>
+                <div class="project-overlay">
+                    <div class="overlay-content">
+                        <span class="project-category">BRAND IDENTITY</span>
+                        <h3 class="project-name">嶼石生活選物</h3>
+                        <div class="view-prompt">查看案例 <span>→</span></div>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </section>
+
+    <!-- 設計團隊區塊 (Team) -->
+    <section id="team" class="team-section">
+        <h2 class="section-title gsap-reveal" style="margin-bottom: 0;">設計團隊 TEAM</h2>
+        <div class="team-grid">
+            <!-- 團隊成員 1 -->
+            <div class="team-card gsap-team-item">
+                <div class="team-img-wrap">
+                    <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=600&q=80" alt="程宇辰">
+                </div>
+                <h4 class="team-name">程宇辰</h4>
+                <p class="team-role">Design Director / 創辦人</p>
+            </div>
+            <!-- 團隊成員 2 -->
+            <div class="team-card gsap-team-item">
+                <div class="team-img-wrap">
+                    <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80" alt="林心妍">
+                </div>
+                <h4 class="team-name">林心妍</h4>
+                <p class="team-role">UI/UX Lead</p>
+            </div>
+            <!-- 團隊成員 3 -->
+            <div class="team-card gsap-team-item">
+                <div class="team-img-wrap">
+                    <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=600&q=80" alt="陳硯">
+                </div>
+                <h4 class="team-name">陳硯</h4>
+                <p class="team-role">Brand Strategist</p>
+            </div>
+            <!-- 團隊成員 4 -->
+            <div class="team-card gsap-team-item">
+                <div class="team-img-wrap">
+                    <img src="https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=600&q=80" alt="張語寧">
+                </div>
+                <h4 class="team-name">張語寧</h4>
+                <p class="team-role">Spatial Designer</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 個案研究區塊 (Case Study) -->
+    <section id="case-study" class="case-study-section">
+        <div class="cs-inner">
+            <h2 class="section-title gsap-reveal">個案研究 CASE STUDY</h2>
+            
+            <!-- 專案背景 -->
+            <div class="cs-block gsap-reveal">
+                <div class="cs-text">
+                    <h3>專案背景 Background</h3>
+                    <p>煦光咖啡（Dawn Cafe）成立逾十年，原有的視覺識別逐漸老化，難以在高度競爭的精品咖啡市場中脫穎而出。品牌面臨年輕客群流失，以及數位通路視覺不一致的重大挑戰。我們介入的核心任務，是重新提煉其「溫暖、甦醒」的品牌本質，建立符合現代美學的視覺系統。</p>
+                </div>
+                <div class="cs-image">
+                    <!-- 替換為有效的高畫質咖啡廳空間圖 -->
+                    <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80" alt="背景分析" class="cs-img-element">
+                </div>
+            </div>
+
+            <!-- 設計策略 (Pin 固定區塊) -->
+            <div class="cs-strategy-container">
+                <div class="cs-strategy-left">
+                    <div class="pinned-media gsap-reveal">
+                        <!-- 三個策略對應的切換圖片：色彩、字體、體驗 -->
+                        <img src="https://images.unsplash.com/photo-1561070791-2526d30994b5?auto=format&fit=crop&w=1200&q=80" alt="策略一：色彩" class="pinned-img active" data-step="0">
+                        <img src="https://images.unsplash.com/photo-1626785774573-4b799315345d?auto=format&fit=crop&w=1200&q=80" alt="策略二：字體與標誌" class="pinned-img" data-step="1">
+                        <img src="https://images.unsplash.com/photo-1542744094-3a31f272c490?auto=format&fit=crop&w=1200&q=80" alt="策略三：體驗設計" class="pinned-img" data-step="2">
+                    </div>
+                </div>
+                <div class="cs-strategy-right">
+                    <div class="strategy-step" data-step="0">
+                        <h4>策略一：色彩與光影重塑</h4>
+                        <p>捨棄傳統咖啡店厚重的深咖啡色調，我們提取了「破曉時分的暖陽色」，以帶有層次的大地色與橙橘色系，建構出明亮且具備溫潤人文感的色彩系統，呼應「煦光」之名。新色彩更適合在數位螢幕上發揮影響力。</p>
+                    </div>
+                    <div class="strategy-step" data-step="1">
+                        <h4>策略二：字體與標誌現代化</h4>
+                        <p>標誌設計結合了陽光輻射的幾何意象與咖啡豆的溫潤曲線。標準字則採用了微調過比例的無襯線字體，確保在實體招牌、包裝印刷與數位載體（如 APP、社群圖文）上，皆能具備極佳的易讀性與辨識度。</p>
+                    </div>
+                    <div class="strategy-step" data-step="2">
+                        <h4>策略三：體驗系統化整合</h4>
+                        <p>從外帶杯材、包裝豆袋到數位會員介面，我們規劃了嚴謹的設計指南（Design Guidelines）。確保消費者無論在線下品嚐或線上購物，都能感受到品牌一致的沈穩、細緻與高品質服務體驗。</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 最終成果 -->
+            <div class="cs-block gsap-reveal">
+                <div class="cs-image">
+                    <!-- 替換為有效的高品質完工圖 -->
+                    <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=1200&q=80" alt="最終成果" class="cs-img-element">
+                </div>
+                <div class="cs-text">
+                    <h3>最終成果 Outcome</h3>
+                    <p>全新的品牌識別上線後，不僅實體店面的年輕客群來客數提升了 35%，社群參與度也顯著成長。一套兼具溫潤氣質與現代結構的設計系統，成功協助煦光咖啡邁向下一個十年的擴張與數位轉型。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 聯絡表單區塊 (Contact) -->
+    <section id="contact" class="contact-section">
+        <div class="contact-intro gsap-reveal">
+            <h2>聯絡我們 CONTACT</h2>
+            <p>準備好啟動您的下一個專案了嗎？<br>請留下您的需求，我們將於兩個工作天內與您聯繫。</p>
+        </div>
+        
+        <form id="collaboration-form" class="contact-form gsap-reveal" onsubmit="event.preventDefault();">
+            <div class="form-group">
+                <input type="text" class="form-input" placeholder="您的姓名 / 品牌名稱" required>
+            </div>
+            <div class="form-group">
+                <input type="email" class="form-input" placeholder="聯絡電子郵件" required>
+            </div>
+            <div class="form-group">
+                <select class="form-input" required>
+                    <option value="" disabled selected>請選擇您需要的服務</option>
+                    <option value="brand">品牌策略與識別設計</option>
+                    <option value="digital">數位體驗與網站設計</option>
+                    <option value="other">其他合作提案</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <textarea class="form-input" placeholder="簡單描述您的專案需求或現狀..." required></textarea>
+            </div>
+            
+            <div class="magnetic-wrap">
+                <button type="submit" class="magnetic-btn">送出需求</button>
+            </div>
+        </form>
+
+        <!-- 成功訊息容器 -->
+        <div id="success-msg" class="success-message">
+            <h3>訊息已送出</h3>
+            <p>感謝您的來信，我們非常期待與您展開合作探討！</p>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2026 橋序創研 BridgeSegLab. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", (event) => {
+            // 建立 GSAP 時間軸，設定全域的預設動畫效果
+            // 使用 power3.out 能產生「剛開始稍快，結尾非常滑順柔和」的沉穩感，避免煞停
+            const tl = gsap.timeline({
+                defaults: {
+                    ease: "power3.out",
+                    duration: 1.5
+                }
+            });
+
+            // 1. 主視覺展開：由稍微縮小 (scale 0.95)、稍微偏下 (y: 30) 的狀態浮現
+            tl.fromTo(".hero-visual", 
+                { opacity: 0, scale: 0.95, y: 30 }, 
+                { opacity: 1, scale: 1, y: 0 }
+            )
+            // 2. 主標題落位：接續在主視覺出現後，提早 0.8 秒開始進場 (使用 "-=0.8")
+            .fromTo(".hero-title", 
+                { opacity: 0, scale: 0.95, y: 40 }, 
+                { opacity: 1, scale: 1, y: 0, duration: 1.2 },
+                "-=0.8"
+            )
+            // 3. 說明文字進場：同樣帶有微縮放與位移，保持閱讀的一致性
+            .fromTo(".hero-desc", 
+                { opacity: 0, scale: 0.98, y: 20 }, 
+                { opacity: 1, scale: 1, y: 0, duration: 1.2 },
+                "-=0.9"
+            )
+            // 4. 按鈕浮現：作為視覺的收尾，輕柔到位
+            .fromTo(".hero-btn", 
+                { opacity: 0, scale: 0.98, y: 15 }, 
+                { opacity: 1, scale: 1, y: 0, duration: 1 },
+                "-=0.9"
+            )
+            // 5. 滾動跑馬燈浮現
+            .fromTo(".hero-marquee",
+                { opacity: 0, y: 20 },
+                { opacity: 1, y: 0, duration: 1.2 },
+                "-=0.8"
+            );
+
+            // ==========================================
+            // GSAP 互動 1：作品分類 Flip 平順重排
+            // ==========================================
+            gsap.registerPlugin(Flip);
+            
+            const filterBtns = document.querySelectorAll(".filter-btn");
+            const projectCards = document.querySelectorAll(".project-card");
+
+            filterBtns.forEach(btn => {
+                btn.addEventListener("click", (e) => {
+                    // 1. 切換啟動樣式
+                    filterBtns.forEach(b => b.classList.remove("active"));
+                    e.target.classList.add("active");
+
+                    const filter = e.target.getAttribute("data-filter");
+
+                    // 2. 獲取重新排版前的初始狀態 (State)
+                    const state = Flip.getState(".project-card");
+
+                    // 3. 更改 DOM 結構 (控制顯示或隱藏)
+                    projectCards.forEach(card => {
+                        const category = card.getAttribute("data-category");
+                        if (filter === "all" || filter === category) {
+                            card.style.display = "block";
+                        } else {
+                            card.style.display = "none";
+                        }
+                    });
+
+                    // 4. 將佈局交還給 Flip，實現自動平滑過渡
+                    Flip.from(state, {
+                        duration: 0.6,
+                        ease: "power3.out",
+                        absolute: true, // 確保以絕對定位過渡，防止網格跳動崩壞
+                        stagger: 0.05,
+                        onEnter: elements => gsap.fromTo(elements, {opacity: 0, scale: 0.95}, {opacity: 1, scale: 1, duration: 0.4}),
+                        onLeave: elements => gsap.to(elements, {opacity: 0, scale: 0.95, duration: 0.4})
+                    });
+                });
+            });
+
+            // ==========================================
+            // GSAP 互動 2：卡片 Hover 微縮放與資訊揭露
+            // ==========================================
+            projectCards.forEach(card => {
+                const img = card.querySelector(".project-img");
+                const overlay = card.querySelector(".project-overlay");
+                const content = card.querySelector(".overlay-content");
+
+                // 初始化遮罩與文字為隱藏狀態
+                gsap.set(overlay, { opacity: 0 });
+                gsap.set(content, { y: 20, opacity: 0 });
+
+                card.addEventListener("mouseenter", () => {
+                    // 圖片輕微平滑放大
+                    gsap.to(img, { scale: 1.05, duration: 0.6, ease: "power2.out" });
+                    // 遮罩淡入
+                    gsap.to(overlay, { opacity: 1, duration: 0.4, ease: "power2.out" });
+                    // 內容上浮淡入 (稍微延遲，產生立體進場感)
+                    gsap.to(content, { y: 0, opacity: 1, duration: 0.4, ease: "power2.out", delay: 0.05 });
+                });
+
+                card.addEventListener("mouseleave", () => {
+                    // 圖片復原
+                    gsap.to(img, { scale: 1, duration: 0.6, ease: "power2.out" });
+                    // 遮罩淡出
+                    gsap.to(overlay, { opacity: 0, duration: 0.4, ease: "power2.out" });
+                    // 內容退回初始位置
+                    gsap.to(content, { y: 20, opacity: 0, duration: 0.4, ease: "power2.out" });
+                });
+            });
+
+            // ==========================================
+            // GSAP 互動 3：個案研究 ScrollTrigger 浮現與 Pin 固定
+            // ==========================================
+            gsap.registerPlugin(ScrollTrigger);
+
+            // 1. 各段落逐步浮現 (Fade-in-up)
+            const revealElements = document.querySelectorAll(".gsap-reveal");
+            revealElements.forEach(el => {
+                // 預先設定隱藏與向下位移 (交由 GSAP 接管)
+                gsap.set(el, { autoAlpha: 0, y: 40 });
+                
+                ScrollTrigger.create({
+                    trigger: el,
+                    start: "top 85%", // 元素頂部到達視窗 85% 位置時觸發
+                    animation: gsap.to(el, {
+                        autoAlpha: 1, // 自動處理 opacity 與 visibility
+                        y: 0,
+                        duration: 1.2,
+                        ease: "power3.out"
+                    }),
+                    toggleActions: "play none none none" // 僅播放一次，不反覆觸發干擾閱讀
+                });
+            });
+
+            // 團隊成員 Stagger (交錯) 進場動畫
+            const teamItems = document.querySelectorAll(".gsap-team-item");
+            if (teamItems.length > 0) {
+                gsap.set(teamItems, { autoAlpha: 0, y: 30 });
+                ScrollTrigger.create({
+                    trigger: ".team-section",
+                    start: "top 75%",
+                    animation: gsap.to(".gsap-team-item", {
+                        autoAlpha: 1,
+                        y: 0,
+                        duration: 1,
+                        stagger: 0.15, // 每張卡片延遲 0.15 秒出現
+                        ease: "power3.out"
+                    }),
+                    toggleActions: "play none none none"
+                });
+            }
+
+            // 2. 設計策略區塊 Pin 固定與圖片切換
+            // 使用 gsap.matchMedia 針對不同裝置提供最佳化捲動體驗
+            let mm = gsap.matchMedia();
+
+            // 桌機版：啟用完整的 Pin (畫面釘選) 功能
+            mm.add("(min-width: 768px)", () => {
+                ScrollTrigger.create({
+                    trigger: ".cs-strategy-container",
+                    start: "top 15%", // 固定在接近畫面上方的位置
+                    end: "bottom bottom", // 捲動到右側底部時解除
+                    pin: ".cs-strategy-left",
+                    scrub: true
+                });
+
+                const steps = document.querySelectorAll(".strategy-step");
+                const imgs = document.querySelectorAll(".pinned-img");
+
+                // 綁定右側的每個說明步驟，觸發左側圖片切換
+                steps.forEach((step, index) => {
+                    ScrollTrigger.create({
+                        trigger: step,
+                        start: "top center", // 當步驟到達視窗中心時觸發
+                        end: "bottom center",
+                        onToggle: self => {
+                            if (self.isActive) {
+                                imgs.forEach(img => img.classList.remove("active"));
+                                if(imgs[index]) imgs[index].classList.add("active");
+                            }
+                        }
+                    });
+                });
+                return () => {};
+            });
+
+            // 行動版降級設計：
+            // 不強制執行 Pin，但保留圖片切換邏輯。圖片容器會透過 CSS 的 position: sticky 黏置在螢幕上方。
+            mm.add("(max-width: 767px)", () => {
+                const steps = document.querySelectorAll(".strategy-step");
+                const imgs = document.querySelectorAll(".pinned-img");
+                 
+                steps.forEach((step, index) => {
+                    ScrollTrigger.create({
+                        trigger: step,
+                        start: "top 60%", // 行動版觸發點稍微往下，避開 sticky 在上方的圖片
+                        end: "bottom 40%",
+                        onToggle: self => {
+                            if (self.isActive) {
+                                imgs.forEach(img => img.classList.remove("active"));
+                                if(imgs[index]) imgs[index].classList.add("active");
+                            }
+                        }
+                    });
+                });
+                return () => {};
+            });
+
+            // ==========================================
+            // GSAP 互動 4：游標磁吸按鈕 (Magnetic Button)
+            // ==========================================
+            const magneticWrap = document.querySelector('.magnetic-wrap');
+            const magneticBtn = document.querySelector('.magnetic-btn');
+            
+            if (magneticWrap && magneticBtn) {
+                magneticWrap.addEventListener('mousemove', (e) => {
+                    const rect = magneticWrap.getBoundingClientRect();
+                    // 計算滑鼠相對於容器中心點的距離
+                    const h = rect.width / 2;
+                    const v = rect.height / 2;
+                    const x = e.clientX - rect.left - h;
+                    const y = e.clientY - rect.top - v;
+                    
+                    // 利用 GSAP 讓按鈕朝滑鼠方向偏移 (設定 0.3 靈敏度)
+                    gsap.to(magneticBtn, {
+                        x: x * 0.3,
+                        y: y * 0.3,
+                        duration: 0.4,
+                        ease: 'power2.out'
+                    });
+                });
+
+                magneticWrap.addEventListener('mouseleave', () => {
+                    // 滑鼠離開時，使用帶有彈性的 ease 歸位
+                    gsap.to(magneticBtn, {
+                        x: 0,
+                        y: 0,
+                        duration: 0.7,
+                        ease: 'elastic.out(1, 0.3)'
+                    });
+                });
+            }
+
+            // ==========================================
+            // GSAP 互動 5：表單送出狀態回饋
+            // ==========================================
+            const contactForm = document.getElementById('collaboration-form');
+            const successMsg = document.getElementById('success-msg');
+
+            if (contactForm) {
+                contactForm.addEventListener('submit', (e) => {
+                    // 模擬表單送出的轉場效果
+                    const tlSubmit = gsap.timeline();
+                    
+                    tlSubmit.to(contactForm, {
+                        autoAlpha: 0,
+                        y: -20,
+                        duration: 0.5,
+                        ease: 'power2.in',
+                        onComplete: () => {
+                            contactForm.style.display = 'none';
+                            successMsg.style.display = 'flex';
+                        }
+                    })
+                    .fromTo(successMsg, 
+                        { autoAlpha: 0, y: 20 },
+                        { autoAlpha: 1, y: 0, duration: 0.6, ease: 'power3.out' }
+                    );
+                });
+            }
+
+        });
+    </script>
+</body>
+</html>
